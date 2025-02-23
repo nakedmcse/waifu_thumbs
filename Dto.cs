@@ -13,5 +13,12 @@ namespace Thumbnails
                 fileIds = new List<int>();
             }
         }
+
+        public class FileWithMediaType
+        {
+            public int fileId { get; set; }
+            public string filename { get; set; }
+            public string mediaType { get; set; }
+        }
     }
 }

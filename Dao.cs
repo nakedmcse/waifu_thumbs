@@ -71,10 +71,10 @@ namespace Thumbnails
             return CachedFileIds;
         }
         
-        public List<Tuple<int, string>> GetFilePaths(NpgsqlConnection context, List<int> fileIds)
+        public List<Dto.FileWithMediaType> GetFilePaths(NpgsqlConnection context, List<int> fileIds)
         {
-            List<Tuple<int, string>> filePaths = new List<Tuple<int, string>>();
-            string query = "SELECT \"id\",\"fileName\",\"fileExtension\" FROM file_upload_model WHERE \"id\" = ANY(@files)";
+            List<Dto.FileWithMediaType> filePaths = new List<Dto.FileWithMediaType>();
+            string query = "SELECT \"id\",\"fileName\",\"fileExtension\",\"mediaType\" FROM file_upload_model WHERE \"id\" = ANY(@files)";
             using (var command = new NpgsqlCommand(query, context))
             {
                 command.Parameters.AddWithValue("@files", fileIds);
@@ -82,9 +82,13 @@ namespace Thumbnails
                 {
                     while (reader.Read())
                     {
-                        var fileId = reader.GetInt32(0);
-                        var fileName = baseLocation + "files/" + reader.GetString(1)+"."+reader.GetString(2);
-                        filePaths.Add(Tuple.Create(fileId,fileName));
+                        var fileWithType = new Dto.FileWithMediaType()
+                        {
+                            fileId = reader.GetInt32(0),
+                            filename = baseLocation + "files/" + reader.GetString(1)+"."+reader.GetString(2),
+                            mediaType = reader.GetString(3)
+                        };
+                        filePaths.Add(fileWithType);
                     }
                 }
             }

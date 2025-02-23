@@ -4,27 +4,10 @@ using Thumbnails;
 
 string baseLocation = "../WaifuVault/";
 
-List<Tuple<int,string>> CreateThumnbails(NpgsqlConnection context, List<int> fileIds, Dao dao) 
-{
-    var thumbs = new List<Tuple<int,string>>();
-    var files = dao.GetFilePaths(context, fileIds);
-    
-    files.ForEach(x => 
-    {
-        using (var im = Image.NewFromFile(x.Item2))
-        {
-            var scale = 400.0 / im.Width;
-            var thumb = Convert.ToBase64String(im.Resize(scale).WebpsaveBuffer(50));
-            thumbs.Add(Tuple.Create(x.Item1, thumb));
-        }
-    });
-    
-    return thumbs;
-}
-
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 var dao = new Dao(baseLocation);
+var processor = new Processor();
 
 app.MapPost("/thumbs", async (Dto.AlbumFiles album) =>
 {
@@ -37,7 +20,16 @@ app.MapPost("/thumbs", async (Dto.AlbumFiles album) =>
         var finalFileIds = selectedFileIds.Where(id => !alreadyCachedFileIds.Contains(id)).ToList();
         if (finalFileIds.Any())
         {
-            var thumbnails = CreateThumnbails(context, finalFileIds, dao);
+            var files = dao.GetFilePaths(context, finalFileIds);
+            var thumbnails = new List<Tuple<int,string>>();
+            files.ForEach(x =>
+            {
+                var thumb = processor.CreateThumbnail(x);
+                if (thumb != null)
+                {
+                    thumbnails.Add(thumb);
+                }
+            });
             dao.SaveThumnbails(context, thumbnails);
         }
     }
