@@ -1,3 +1,7 @@
+using System.Drawing;
+using System.IO.Pipelines;
+using FFMpegCore;
+using FFMpegCore.Pipes;
 using NetVips;
 
 namespace Thumbnails
@@ -28,8 +32,19 @@ namespace Thumbnails
 
         private Tuple<int,string> ProcessVideo(Dto.FileWithMediaType file)
         {
-            // TODO: Implement
-            return Tuple.Create(0, "");
+            var rnd = new Random();
+            var probe = FFProbe.Analyse(file.filename);
+            var randomDur = rnd.Next((int)probe.Duration.TotalSeconds);
+            var pipe = new MemoryStream();
+            FFMpegArguments.FromFileInput(file.filename)
+                .OutputToPipe(new StreamPipeSink(pipe), options => options
+                    .Seek(TimeSpan.FromSeconds(randomDur))
+                    .WithFrameOutputCount(1)
+                    .WithVideoFilters(filter => filter.Scale(-1, 200))
+                    .WithFastStart()
+                    .ForceFormat("webm"))
+                .ProcessSynchronously();
+            return Tuple.Create(file.fileId, Convert.ToBase64String(pipe.ToArray()));
         }
     }
 };
