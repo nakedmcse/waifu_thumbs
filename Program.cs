@@ -24,14 +24,13 @@ app.MapPost("/thumbs", async (Dto.AlbumFiles album) =>
         {
             var files = dao.GetFilePaths(context, finalFileIds);
             var thumbnails = new List<Tuple<int,string>>();
-            files.ForEach(x =>
+            var tasks = files.Select(f => Task.Run(() =>
             {
-                var thumb = processor.CreateThumbnail(x);
-                if (thumb != null)
-                {
-                    thumbnails.Add(thumb);
-                }
-            });
+                var thumb = processor.CreateThumbnail(f);
+                return thumb;
+            })).ToList();
+            var results = await Task.WhenAll(tasks);
+            thumbnails.AddRange(results.Where(t => t != null));
             dao.SaveThumnbails(context, thumbnails);
         }
     }
