@@ -24,11 +24,20 @@ app.MapPost("/thumbs", async (Dto.AlbumFiles album) =>
         {
             var files = dao.GetFilePaths(context, finalFileIds);
             var thumbnails = new List<Tuple<int,string>>();
-            var tasks = files.Select(f => Task.Run(() =>
+            var semaphore = new SemaphoreSlim(4);
+            var tasks = files.Select(async f =>
             {
-                var thumb = processor.CreateThumbnail(f);
-                return thumb;
-            })).ToList();
+                await semaphore.WaitAsync();
+                try
+                {
+                    var thumb = await Task.Run(() => processor.CreateThumbnail(f));
+                    return thumb;
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToList();
             var results = await Task.WhenAll(tasks);
             thumbnails.AddRange(results.Where(t => t != null));
             dao.SaveThumnbails(context, thumbnails);
