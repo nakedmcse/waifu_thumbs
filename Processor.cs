@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.IO.Pipelines;
 using FFMpegCore;
+using FFMpegCore.Enums;
 using FFMpegCore.Pipes;
 using NetVips;
 
@@ -41,8 +42,8 @@ namespace Thumbnails
                     .Seek(TimeSpan.FromSeconds(randomDur))
                     .WithFrameOutputCount(1)
                     .WithVideoFilters(filter => filter.Scale(-1, 200))
-                    .WithFastStart()
-                    .ForceFormat("webm"))
+                    .ForceFormat("webp")
+                    .WithFastStart())
                 .ProcessSynchronously();
             return Tuple.Create(file.fileId, Convert.ToBase64String(pipe.ToArray()));
         }

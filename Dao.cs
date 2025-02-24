@@ -3,18 +3,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Npgsql;
+using NRedisStack;
+using NRedisStack.RedisStackCommands;
+using StackExchange.Redis;
 
 namespace Thumbnails
 {
     public class Dao
     {
         public string connection;
+        public string redisUri;
         private readonly string baseLocation;
         
         public Dao(string baseLocation)
         {
             this.baseLocation = baseLocation;
             GetPgConfig();
+            GetRedisConfig();
         }
         
         private void GetPgConfig()
@@ -32,6 +37,20 @@ namespace Thumbnails
             catch (Exception ex)
             {
                 throw new Exception("Error in GetPgConfig: " + ex.Message);
+            }
+        }
+
+        private void GetRedisConfig()
+        {
+            try
+            {
+                var configPath = Path.Combine(baseLocation, ".env");
+                var configLines = File.ReadAllLines(configPath);
+                redisUri = configLines.First(l => l.StartsWith("REDIS_URI")).Replace("REDIS_URI=redis://", "");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error in GetRedisConfig: " + ex.Message);
             }
         }
         
@@ -97,6 +116,10 @@ namespace Thumbnails
         
         public void SaveThumnbails(NpgsqlConnection context, List<Tuple<int, string>> thumbnails)
         {
+            var redis = ConnectionMultiplexer.Connect(redisUri);
+            var db = redis.GetDatabase();
+            Utils.Log("Connected to Redis");
+            
             thumbnails.ForEach(x =>
             {
                 string query = "INSERT INTO thumbnail_cache_model (\"fileId\", \"data\") VALUES (@fileId, @data);";
@@ -107,6 +130,11 @@ namespace Thumbnails
                     command.ExecuteNonQuery();
                 }
             });
+            Utils.Log("Saved thumbnails to database");
+            
+            db.StringSet(thumbnails.Select(x => 
+                new KeyValuePair<RedisKey,RedisValue>($"thumbnail:{x.Item1.ToString()}",Convert.FromBase64String(x.Item2))).ToArray());
+            Utils.Log("Saved thumbnails to Redis");
         }
     }
 };
