@@ -23,10 +23,10 @@ namespace Thumbnails
 
         private Tuple<int,string> ProcessImage(Dto.FileWithMediaType file)
         {
-            using (var im = Image.NewFromFile(file.filename))
+            string options = file.mediaType.EndsWith("gif") || file.mediaType.EndsWith("webp") ? "[n=-1]" : "";
+            using (var im = Image.NewFromFile(file.filename + options,true))
             {
-                var scale = 400.0 / im.Width;
-                var thumb = Convert.ToBase64String(im.Resize(scale).WebpsaveBuffer(50));
+                var thumb = Convert.ToBase64String(im.ThumbnailImage(400).WebpsaveBuffer(50));
                 return Tuple.Create(file.fileId, thumb);
             }
         }
