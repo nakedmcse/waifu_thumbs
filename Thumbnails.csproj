@@ -11,6 +11,7 @@
     <PackageReference Include="NetVips" Version="3.0.0" />
     <PackageReference Include="NetVips.Native" Version="8.16.0" />
     <PackageReference Include="Npgsql" Version="9.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostGreSQL" Version="9.0.3" />
     <PackageReference Include="NRedisStack" Version="0.13.2" />
   </ItemGroup>
 
