@@ -12,7 +12,14 @@ namespace Thumbnails
 {
     public class Dao
     {
+        public enum DbType
+        {
+            Postgres,
+            SQLite
+        }
+        
         public string connection;
+        public DbType dbType;
         public string redisUri;
         public readonly DbContext context;
         private readonly string baseLocation;
@@ -22,7 +29,7 @@ namespace Thumbnails
             this.baseLocation = baseLocation;
             GetPgConfig();
             GetRedisConfig();
-            this.context = new DBContext(this.connection);
+            this.context = new DBContext(this.connection, this.dbType);
         }
         
         private void GetPgConfig()
@@ -36,10 +43,13 @@ namespace Thumbnails
                 var db = configLines.First(l => l.StartsWith("POSTGRES_DB")).Replace("POSTGRES_DB=", "");
                 var port = configLines.First(l => l.StartsWith("POSTGRES_PORT")).Replace("POSTGRES_PORT=", "");
                 connection = $"Server=localhost;Port={port};Database={db};Username={username};Password={password}";
+                dbType = DbType.Postgres;
             }
             catch (Exception ex)
             {
-                throw new Exception("Error in GetPgConfig: " + ex.Message);
+                Utils.Log("Postgres config not found, using SQLite");
+                connection = $"Data Source={baseLocation}main.sqlite";
+                dbType = DbType.SQLite;
             }
         }
 

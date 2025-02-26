@@ -2,13 +2,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Thumbnails
 {
-    public class DBContext(string connection) : DbContext
+    public class DBContext(string connection, Dao.DbType dbType) : DbContext
     {
         public DbSet<Model.file_upload_model> file_upload_model { get; set; }
         public DbSet<Model.thumbnail_cache_model> thumbnail_cache_model { get; set; }
-        
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseNpgsql(connection);
+        {
+            switch (dbType)
+            {
+                case Dao.DbType.Postgres:
+                    optionsBuilder.UseNpgsql(connection);
+                    break;
+                case Dao.DbType.SQLite:
+                    optionsBuilder.UseSqlite(connection);
+                    break;
+                default:
+                    optionsBuilder.UseSqlite(connection);
+                    break;
+            }
+        }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
