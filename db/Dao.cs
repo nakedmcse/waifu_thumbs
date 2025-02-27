@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using dotenv.net;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NRedisStack;
@@ -27,43 +28,36 @@ namespace Thumbnails
         public Dao(string baseLocation)
         {
             this.baseLocation = baseLocation;
-            GetPgConfig();
-            GetRedisConfig();
+            GetConfig();
             this.context = new DBContext(this.connection, this.dbType);
         }
-        
-        private void GetPgConfig()
-        {
-            try
-            {
-                var configPath = Path.Combine(baseLocation, "postgres.env");
-                var configLines = File.ReadAllLines(configPath);
-                var username = configLines.First(l => l.StartsWith("POSTGRES_USER")).Replace("POSTGRES_USER=", "");
-                var password = configLines.First(l => l.StartsWith("POSTGRES_PASSWORD")).Replace("POSTGRES_PASSWORD=", "");
-                var db = configLines.First(l => l.StartsWith("POSTGRES_DB")).Replace("POSTGRES_DB=", "");
-                var port = configLines.First(l => l.StartsWith("POSTGRES_PORT")).Replace("POSTGRES_PORT=", "");
-                connection = $"Server=localhost;Port={port};Database={db};Username={username};Password={password}";
-                dbType = DbType.Postgres;
-            }
-            catch (Exception ex)
-            {
-                Utils.Log("Postgres config not found, using SQLite");
-                connection = $"Data Source={baseLocation}main.sqlite";
-                dbType = DbType.SQLite;
-            }
-        }
 
-        private void GetRedisConfig()
+        private void GetConfig()
         {
             try
             {
-                var configPath = Path.Combine(baseLocation, ".env");
-                var configLines = File.ReadAllLines(configPath);
-                redisUri = configLines.First(l => l.StartsWith("REDIS_URI")).Replace("REDIS_URI=redis://", "");
+                var pgenv = Path.Combine(baseLocation, "postgres.env");
+                var env = Path.Combine(baseLocation, ".env");
+                var config = DotEnv.Read(options: new DotEnvOptions(
+                    envFilePaths: new[] { env, pgenv },
+                    ignoreExceptions: false));
+                
+                if (config["DATABASE_TYPE"] == "postgres")
+                {
+                    connection = $"Server=localhost;Port={config["POSTGRES_PORT"]};Database={config["POSTGRES_DB"]};Username={config["POSTGRES_USER"]};Password={config["POSTGRES_PASSWORD"]}";
+                    dbType = DbType.Postgres;
+                }
+                else
+                {
+                    connection = $"Data Source={baseLocation}main.sqlite";
+                    dbType = DbType.SQLite;
+                }
+                
+                redisUri = config["REDIS_URI"].Replace("redis://", "");
             }
             catch (Exception ex)
             {
-                throw new Exception("Error in GetRedisConfig: " + ex.Message);
+                throw new Exception("Configuration file could not be loaded. " + ex.Message);
             }
         }
         
