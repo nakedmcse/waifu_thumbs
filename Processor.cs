@@ -9,6 +9,16 @@ namespace Thumbnails
 {
     public class Processor
     {
+        public List<string> GetSupportedVideoFormats()
+        {
+            return FFMpeg.GetContainerFormats().Select(x => x.Name).ToList();
+        }
+
+        public List<string> GetSupportedImageFormats()
+        {
+            return ["gif", "jpg", "jpeg", "png", "bmp", "pdf", "tiff", "svg", "magick", "webp", "heif", "jp2k", "jxl"];
+        }
+        
         public Tuple<int, string>? CreateThumbnail(Dto.FileWithMediaType file)
         {
             switch (file.mediaType.Split("/")[0])
@@ -24,20 +34,20 @@ namespace Thumbnails
         private Tuple<int,string> ProcessImage(Dto.FileWithMediaType file)
         {
             string options = file.mediaType.EndsWith("gif") || file.mediaType.EndsWith("webp") ? "[n=-1]" : "";
-            using (var im = Image.NewFromFile(file.filename + options,true))
+            using (var im = Image.NewFromFile(file.fileOnDisk + options,true))
             {
                 var thumb = Convert.ToBase64String(im.ThumbnailImage(400).WebpsaveBuffer(50));
-                return Tuple.Create(file.fileId, thumb);
+                return Tuple.Create(file.id, thumb);
             }
         }
 
         private Tuple<int,string> ProcessVideo(Dto.FileWithMediaType file)
         {
             var rnd = new Random();
-            var probe = FFProbe.Analyse(file.filename);
+            var probe = FFProbe.Analyse(file.fileOnDisk);
             var randomDur = rnd.Next((int)probe.Duration.TotalSeconds);
             var pipe = new MemoryStream();
-            FFMpegArguments.FromFileInput(file.filename)
+            FFMpegArguments.FromFileInput(file.fileOnDisk)
                 .OutputToPipe(new StreamPipeSink(pipe), options => options
                     .Seek(TimeSpan.FromSeconds(randomDur))
                     .WithFrameOutputCount(1)
@@ -45,7 +55,7 @@ namespace Thumbnails
                     .ForceFormat("webp")
                     .WithFastStart())
                 .ProcessSynchronously();
-            return Tuple.Create(file.fileId, Convert.ToBase64String(pipe.ToArray()));
+            return Tuple.Create(file.id, Convert.ToBase64String(pipe.ToArray()));
         }
     }
 };

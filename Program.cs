@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using NetVips;
 using Thumbnails;
@@ -9,18 +10,21 @@ var app = builder.Build();
 var dao = new Dao(baseLocation);
 var processor = new Processor();
 
-app.MapPost("/thumbs", async (Dto.AlbumFiles album) =>
+app.MapGet("/generateThumbnails/supported", () =>
 {
-    Utils.Log($"Generating Thumbnails for {album.albumToken}");
-    var albumFileIds = dao.GetAlbumFileIds(album.albumToken);
-    var selectedFileIds = album.fileIds.Any() ? albumFileIds.Where(id => album.fileIds.Contains(id)).ToList() : albumFileIds;
-    var alreadyCachedFileIds = dao.GetCachedFileIds(selectedFileIds);
-    var finalFileIds = selectedFileIds.Where(id => !alreadyCachedFileIds.Contains(id)).ToList();
-    
-    Utils.Log($"Creating {finalFileIds.Count} thumbnails");
-    if (finalFileIds.Any())
+    Utils.Log("Supported image and video formats");
+    var retval = processor.GetSupportedImageFormats();
+    retval.AddRange(processor.GetSupportedVideoFormats());
+    Utils.Log(String.Join(",",retval));
+    return retval;
+});
+
+app.MapPost("/generateThumbnails", async ([FromQuery] int albumId, [FromQuery] bool addingAdditionalFiles, [FromBody]Dto.FileWithMediaType[] files) =>
+{
+    Utils.Log($"Generating Thumbnails");
+    Utils.Log($"Creating {files.Count()} thumbnails");
+    if (files.Any())
     {
-        var files = dao.GetFilePaths(finalFileIds);
         var thumbnails = new List<Tuple<int,string>>();
         var semaphore = new SemaphoreSlim(4);
         var tasks = files.Select(async f =>

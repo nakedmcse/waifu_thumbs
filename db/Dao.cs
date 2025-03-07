@@ -19,10 +19,10 @@ namespace Thumbnails
             SQLite
         }
         
-        public string connection;
-        public DbType dbType;
-        public string redisUri;
-        public readonly DbContext context;
+        private string connection;
+        private DbType dbType;
+        private string redisUri;
+        private readonly DbContext context;
         private readonly string baseLocation;
         
         public Dao(string baseLocation)
@@ -59,29 +59,6 @@ namespace Thumbnails
             {
                 throw new Exception("Configuration file could not be loaded. " + ex.Message);
             }
-        }
-        
-        public List<int> GetAlbumFileIds(string token)
-        {
-            return this.context.Set<Model.file_upload_model>().Where(x => x.albumToken == token)
-                .Select(x => x.id).ToList();
-        }
-        
-        public List<int> GetCachedFileIds(List<int> fileIds)
-        {
-            return this.context.Set<Model.thumbnail_cache_model>().Where(x => fileIds.Contains(x.fileId))
-                .Select(x => x.fileId).ToList();
-        }
-        
-        public List<Dto.FileWithMediaType> GetFilePaths(List<int> fileIds)
-        {
-            return this.context.Set<Model.file_upload_model>().Where(f => fileIds.Contains(f.id))
-                .Select(x => new Dto.FileWithMediaType()
-                {
-                    fileId = x.id,
-                    filename = baseLocation + "files/" + x.fileName + "." + x.fileExtension,
-                    mediaType = x.mediaType
-                }).ToList();
         }
         
         public async Task<bool> SaveThumnbails(List<Tuple<int, string>> thumbnails)
