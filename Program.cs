@@ -12,7 +12,7 @@ var processor = new Processor();
 
 app.MapGet("/generateThumbnails/supported", () =>
 {
-    Utils.Log("Supported image and video formats");
+    Utils.Log("Sending supported image and video formats");
     var retval = processor.GetSupportedImageFormats();
     retval.AddRange(processor.GetSupportedVideoFormats());
     Utils.Log(String.Join(",",retval));
