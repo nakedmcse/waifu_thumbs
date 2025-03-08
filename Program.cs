@@ -25,6 +25,10 @@ app.MapPost("/generateThumbnails", async ([FromQuery] int albumId, [FromQuery] b
     Utils.Log($"Creating {files.Count()} thumbnails");
     if (files.Any())
     {
+        foreach (var f in files)
+        {
+            f.fileOnDisk = $"{baseLocation}files/{f.fileOnDisk}";
+        }
         var thumbnails = new List<Tuple<int,string>>();
         var semaphore = new SemaphoreSlim(4);
         var tasks = files.Select(async f =>
