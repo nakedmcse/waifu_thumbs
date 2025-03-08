@@ -34,9 +34,9 @@ namespace Thumbnails
         private Tuple<int,string> ProcessImage(Dto.FileWithMediaType file)
         {
             string options = file.mediaType.EndsWith("gif") || file.mediaType.EndsWith("webp") ? "[n=-1]" : "";
-            using (var im = Image.NewFromFile(file.fileOnDisk + options,true))
+            using (var im = Image.Thumbnail(file.fileOnDisk + options,400))
             {
-                var thumb = Convert.ToBase64String(im.ThumbnailImage(400).WebpsaveBuffer(50));
+                var thumb = Convert.ToBase64String(im.WebpsaveBuffer(50));
                 return Tuple.Create(file.id, thumb);
             }
         }
