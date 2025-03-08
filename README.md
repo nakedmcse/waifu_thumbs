@@ -2,14 +2,12 @@
 This is a prototype C# microservice for Waifuvault that creates thumbnails of 
 images and videos.  Written using minimal API.
 
-Currently only supports the PostGres database.
+This uses the same interface and endpoints as the Go version and can be used as a drop in replacement.
 
-Expects a POST to the /thumbs endpoint with the following json object as the body:
+To build for docker, you will have to move the source code into the waifuvault source tree,
+uncomment the files and envs section of the compose file and run:
 
-```json
-{
-  "albumToken": "some-album-token",
-  "files": [1,2,3,4,5]
-}
+```shell
+docker compose up -d
 ```
 
